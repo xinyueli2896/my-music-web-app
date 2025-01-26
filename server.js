@@ -4,8 +4,6 @@ const multer = require('multer');
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
-const helmet = require('helmet');
-const cors = require('cors');
 // const { exec } = require('child_process'); // Uncomment if using FFmpeg for conversion
 
 // 0) Load environment variables from .env (for local development only)
@@ -14,27 +12,17 @@ require('dotenv').config();
 // 1) Express initialization
 const app = express();
 
-// 2) Security Middlewares
-app.use(helmet()); // Sets various HTTP headers for app security
-
-// Configure CORS
-app.use(cors({
-  origin: 'http://localhost:3000', // Replace with your frontend URL
-  methods: ['GET', 'POST'],
-  credentials: true,
-}));
-
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/audio', express.static(path.join(__dirname, 'audio')));
 
-// 3) Multer config: store file temporarily in 'uploads/' folder
+// 2) Multer config: store file temporarily in 'uploads/' folder
 const upload = multer({ 
   dest: 'uploads/',
   limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit (adjust as needed)
 });
 
-// 4) Google Drive Auth - service account
+// 3) Google Drive Auth - service account
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
 // Decode and parse the service account JSON from the environment variable
@@ -101,23 +89,14 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
 
   try {
     // Create a Drive client
-    const driveService = google.drive({ version: 'v3', auth: await auth.getClient(), debug: false });
+    const driveService = google.drive({ version: 'v3', auth: await auth.getClient() });
 
     // Determine target file name and path
     const originalName = req.file.originalname || 'untitled.webm';
     const localFilePath = req.file.path; // e.g., 'uploads/abc123'
 
     const trackName = req.body.trackName;
-    const folderId = SUBFOLDER_MAP[trackName];
-    if (!folderId) {
-      console.error(`Upload Error: No folder ID found for track name '${trackName}'.`);
-      // Delete the uploaded file
-      fs.unlink(localFilePath, (err) => {
-        if (err) console.error('Error deleting file with invalid folder ID:', err);
-        else console.log('File deleted due to invalid folder ID:', localFilePath);
-      });
-      return res.status(400).json({ success: false, error: 'Invalid track name provided.' });
-    }
+    const folderId = SUBFOLDER_MAP[trackName] || '1kaua6xYUe-Rl7Z0uFBhcsG_GpKb18Db-';  // Default folder ID
 
     // Retrieve the username from the form data
     const username = req.body.username || 'UnknownUser';
@@ -128,7 +107,7 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
     console.log(`Preparing to upload file: ${filename} to folder ID: ${folderId}`);
 
     // 5) [Optional] Convert WebM to MP4 using FFmpeg
-    // If you want to convert the video to MP4, uncomment the following block and ensure FFmpeg is installed on the server.
+    // Uncomment if using FFmpeg for conversion
 
     /*
     const convertedFilePath = path.join('uploads', `${filename}.mp4`);
@@ -191,14 +170,8 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
     });
 
   } catch (err) {
-    // Handle specific Google API errors
-    if (err.response && err.response.status) {
-      console.error(`Google API Error (${err.response.status}):`, err.response.data);
-      return res.status(err.response.status).json({ success: false, error: err.response.data.error.message });
-    }
-
     console.error('Drive upload error:', err);
-    return res.status(500).json({ success: false, error: 'An internal server error occurred during upload.' });
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
