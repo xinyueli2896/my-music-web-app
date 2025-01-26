@@ -1,5 +1,40 @@
 // script.js
 
+// Arrays of adjectives and animals
+const adjectives = [
+  "Brave", "Calm", "Delightful", "Eager", "Faithful", "Gentle",
+  "Happy", "Jolly", "Kind", "Lively", "Nice", "Proud", "Silly",
+  "Thankful", "Witty", "Zealous", "Clever", "Daring", "Energetic",
+  "Fancy", "Graceful", "Humble", "Inventive", "Joyful", "Lucky"
+];
+
+const animals = [
+  "Lion", "Tiger", "Bear", "Eagle", "Shark", "Panda",
+  "Dolphin", "Wolf", "Fox", "Leopard", "Giraffe", "Kangaroo",
+  "Zebra", "Elephant", "Cheetah", "Falcon", "Otter", "Squirrel",
+  "Monkey", "Rabbit", "Hawk", "Goose", "Owl", "Peacock"
+];
+
+// Function to generate a random username by combining an adjective and an animal
+function generateRandomUsername() {
+  const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+  return `${randomAdj}${randomAnimal}`;
+}
+
+// Function to set and display the username
+function setUsername() {
+  let username = localStorage.getItem('username');
+  if (!username) {
+    username = generateRandomUsername();
+    localStorage.setItem('username', username);
+  }
+  document.getElementById('username').textContent = username;
+}
+
+// Call setUsername when the page loads
+window.addEventListener('DOMContentLoaded', setUsername);
+
 // Global variables
 let mediaRecorder;
 let chunks = [];
@@ -7,6 +42,7 @@ let cardNumber = null;
 let isRecording = false;
 let recordedBlob = null;
 let uploadTimeout = null;
+let audioEndedListener = null; // Reference to the audio 'ended' event listener
 
 // Get references to HTML elements
 const drawButton = document.getElementById('draw-button');
@@ -29,6 +65,12 @@ function resetRecordingState() {
   isRecording = false;
   recordedBlob = null;
   uploadTimeout = null;
+
+  // Remove the audio 'ended' event listener if it exists
+  if (audioEndedListener && audioPlayer) {
+    audioPlayer.removeEventListener('ended', audioEndedListener);
+    audioEndedListener = null;
+  }
 
   // Reset UI elements
   recordButton.disabled = true;
@@ -125,6 +167,18 @@ recordButton.addEventListener('click', () => {
     // Hide post-record controls and status message in case of previous recordings
     postRecordControls.style.display = 'none';
     statusMessage.style.display = 'none';
+
+    // Define the 'ended' event listener
+    audioEndedListener = () => {
+      console.log("Audio ended. Automatically stopping the recording.");
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+      }
+    };
+
+    // Attach the 'ended' event listener to the audio player
+    audioPlayer.addEventListener('ended', audioEndedListener);
+
   } catch (error) {
     console.error("Error starting recording:", error);
     alert("Could not start recording. Please try again.");
@@ -145,13 +199,23 @@ stopButton.addEventListener('click', () => {
   
   // Disable the stop button
   stopButton.disabled = true;
+
+  // Stop the music playback
+  audioPlayer.pause();
+  audioPlayer.currentTime = 0; // Reset to the beginning
+
+  // Remove the 'ended' event listener as the recording has been stopped manually
+  if (audioEndedListener && audioPlayer) {
+    audioPlayer.removeEventListener('ended', audioEndedListener);
+    audioEndedListener = null;
+  }
 });
 
 // 6. Handle Recording Stop
 function handleRecordingStop() {
   // Assign the recorded blob to the global variable
   recordedBlob = new Blob(chunks, { type: 'video/webm' });
-  console.log("Recorded Blob:", recordedBlob);
+  console.log("Recorded Blob Assigned to Global Variable:", recordedBlob);
 
   // Show post-recording controls
   postRecordControls.style.display = 'block';
@@ -166,6 +230,7 @@ function handleRecordingStop() {
   // Optional: Set a timeout to auto-upload after 30 seconds
   uploadTimeout = setTimeout(() => {
     if (recordedBlob) {
+      console.log("Auto-upload triggered after timeout.");
       uploadButton.click(); // Automatically trigger the upload
     }
   }, 30000); // 30,000 milliseconds = 30 seconds
@@ -206,22 +271,28 @@ uploadButton.addEventListener('click', () => {
     uploadTimeout = null;
   }
 
+  console.log("Upload Button Clicked. Current recordedBlob:", recordedBlob);
+
   if (!recordedBlob) {
     alert("No recording available to upload.");
+    console.warn("No recording available to upload. recordedBlob is null.");
     return;
   }
+
+  // Retrieve the username from localStorage
+  const username = localStorage.getItem('username') || 'UnknownUser';
 
   // Show a status message indicating upload is in progress
   statusMessage.style.display = 'block';
   statusText.textContent = 'Uploading your video to Google Drive...';
-  spinner.style.display = 'inline';
+  spinner.style.display = 'inline-block'; // Changed to 'inline-block' for better visibility
 
   // Disable upload and re-record buttons to prevent multiple uploads
   uploadButton.disabled = true;
   reRecordButton.disabled = true;
 
   // 6. UPLOAD THE VIDEO FILE
-  uploadVideo(recordedBlob, cardNumber)
+  uploadVideo(recordedBlob, cardNumber, username)
     .then(() => {
       // Hide spinner
       spinner.style.display = 'none';
@@ -255,11 +326,12 @@ uploadButton.addEventListener('click', () => {
 });
 
 // 9. UPLOAD THE VIDEO
-async function uploadVideo(videoBlob, cardNum) {
+async function uploadVideo(videoBlob, cardNum, username) {
   const formData = new FormData();
-  formData.append('videoFile', videoBlob, `card${cardNum}.webm`);
+  formData.append('videoFile', videoBlob, `recording.webm`); // Use a generic name; server assigns the timestamped name
   formData.append('cardNumber', cardNum);
   formData.append('trackName', `${cardNum}.mp3`);
+  formData.append('username', username); // Include the username
 
   const response = await fetch('/api/upload', {
     method: 'POST',
