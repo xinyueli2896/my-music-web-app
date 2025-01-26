@@ -4,6 +4,9 @@
 let mediaRecorder;
 let chunks = [];
 let cardNumber = null;
+let isRecording = false;
+let recordedBlob = null;
+let uploadTimeout = null;
 
 // Get references to HTML elements
 const drawButton = document.getElementById('draw-button');
@@ -12,6 +15,27 @@ const recordButton = document.getElementById('record-button');
 const stopButton = document.getElementById('stop-button');
 const audioPlayer = document.getElementById('audio-player');
 const localVideo = document.getElementById('local-video'); // Reference to the <video> element
+const postRecordControls = document.getElementById('post-record-controls');
+const reRecordButton = document.getElementById('re-record-button');
+const uploadButton = document.getElementById('upload-button');
+const statusMessage = document.getElementById('status-message');
+const statusText = document.getElementById('status-text');
+const spinner = document.getElementById('spinner');
+
+// Function to reset the recording state
+function resetRecordingState() {
+  mediaRecorder = null;
+  chunks = [];
+  isRecording = false;
+  recordedBlob = null;
+  uploadTimeout = null;
+
+  // Reset UI elements
+  recordButton.disabled = true;
+  stopButton.disabled = true;
+  postRecordControls.style.display = 'none';
+  statusMessage.style.display = 'none';
+}
 
 // 1. DRAW A CARD (randomly pick a number)
 drawButton.addEventListener('click', async () => {
@@ -58,6 +82,10 @@ drawButton.addEventListener('click', async () => {
     recordButton.disabled = false;
     stopButton.disabled = true;
 
+    // Hide post-record controls and status message in case of previous recordings
+    postRecordControls.style.display = 'none';
+    statusMessage.style.display = 'none';
+
   } catch (err) {
     console.error("Error accessing camera/mic:", err);
     if (err.name === 'NotAllowedError') {
@@ -87,11 +115,16 @@ recordButton.addEventListener('click', () => {
   // Start recording
   try {
     mediaRecorder.start();
+    isRecording = true;
     console.log("Recording started...");
     
     // Disable the record button and enable the stop button
     recordButton.disabled = true;
     stopButton.disabled = false;
+
+    // Hide post-record controls and status message in case of previous recordings
+    postRecordControls.style.display = 'none';
+    statusMessage.style.display = 'none';
   } catch (error) {
     console.error("Error starting recording:", error);
     alert("Could not start recording. Please try again.");
@@ -100,52 +133,157 @@ recordButton.addEventListener('click', () => {
 
 // 5. STOP RECORDING
 stopButton.addEventListener('click', () => {
-  if (!mediaRecorder) {
-    alert("Media Recorder not initialized.");
+  if (!mediaRecorder || !isRecording) {
+    alert("Media Recorder not initialized or not recording.");
     return;
   }
 
   // Stop recording
   mediaRecorder.stop();
+  isRecording = false;
   console.log("Recording stopped.");
   
   // Disable the stop button
   stopButton.disabled = true;
 });
 
-// Called when recording stops; we have the final Blob
+// 6. Handle Recording Stop
 function handleRecordingStop() {
   const recordedBlob = new Blob(chunks, { type: 'video/webm' });
   console.log("Recorded Blob:", recordedBlob);
+  
+  // Store the recorded blob for potential upload
+  this.recordedBlob = recordedBlob;
 
-  // 6. UPLOAD THE VIDEO FILE
-  uploadVideo(recordedBlob, cardNumber);
+  // Show post-recording controls
+  postRecordControls.style.display = 'block';
+
+  // Optionally, show a status message or prompt
+  statusMessage.style.display = 'block';
+  statusText.textContent = 'Would you like to re-record or upload your video?';
+
+  // Optionally, show the spinner (hidden initially)
+  spinner.style.display = 'none';
+
+  // Optional: Set a timeout to auto-upload after 30 seconds
+  uploadTimeout = setTimeout(() => {
+    if (recordedBlob) {
+      uploadButton.click(); // Automatically trigger the upload
+    }
+  }, 30000); // 30,000 milliseconds = 30 seconds
 }
 
-// 6. UPLOAD THE VIDEO
-function uploadVideo(videoBlob, cardNum) {
+// 7. RE-RECORD FUNCTIONALITY
+reRecordButton.addEventListener('click', () => {
+  // Clear any existing upload timeouts
+  if (uploadTimeout) {
+    clearTimeout(uploadTimeout);
+    uploadTimeout = null;
+  }
+
+  // Reset the recorded blob
+  recordedBlob = null;
+
+  // Hide post-recording controls and status message
+  postRecordControls.style.display = 'none';
+  statusMessage.style.display = 'none';
+
+  // Optionally, stop any ongoing music
+  audioPlayer.pause();
+  audioPlayer.currentTime = 0;
+
+  // Enable the record button and disable the stop button
+  recordButton.disabled = false;
+  stopButton.disabled = true;
+
+  // Optionally, prompt the user to start recording again
+  // This can be automatic or require the user to click "Start Recording" again
+});
+
+// 8. UPLOAD FUNCTIONALITY
+uploadButton.addEventListener('click', () => {
+  // Clear any existing upload timeouts
+  if (uploadTimeout) {
+    clearTimeout(uploadTimeout);
+    uploadTimeout = null;
+  }
+
+  if (!recordedBlob) {
+    alert("No recording available to upload.");
+    return;
+  }
+
+  // Show a status message indicating upload is in progress
+  statusMessage.style.display = 'block';
+  statusText.textContent = 'Uploading your video to Google Drive...';
+  spinner.style.display = 'inline';
+
+  // Disable upload and re-record buttons to prevent multiple uploads
+  uploadButton.disabled = true;
+  reRecordButton.disabled = true;
+
+  // 6. UPLOAD THE VIDEO FILE
+  uploadVideo(recordedBlob, cardNumber)
+    .then(() => {
+      // Hide spinner
+      spinner.style.display = 'none';
+
+      // Show success message
+      statusText.textContent = 'Video uploaded successfully to Google Drive!';
+      
+      // Optionally, reset the recording state after a delay
+      setTimeout(() => {
+        resetRecordingState();
+        // Optionally, hide the local video preview
+        localVideo.style.display = 'none';
+        if (localVideo.srcObject) {
+          localVideo.srcObject.getTracks().forEach(track => track.stop()); // Stop all tracks
+          localVideo.srcObject = null;
+        }
+      }, 3000); // 3 seconds delay
+    })
+    .catch((err) => {
+      // Hide spinner
+      spinner.style.display = 'none';
+
+      // Show error message
+      statusText.textContent = 'Error uploading video. Please try again.';
+      console.error("Upload error:", err);
+      
+      // Re-enable upload and re-record buttons
+      uploadButton.disabled = false;
+      reRecordButton.disabled = false;
+    });
+});
+
+// 9. UPLOAD THE VIDEO
+async function uploadVideo(videoBlob, cardNum) {
   const formData = new FormData();
   formData.append('videoFile', videoBlob, `card${cardNum}.webm`);
   formData.append('cardNumber', cardNum);
   formData.append('trackName', `${cardNum}.mp3`);
 
-  fetch('/api/upload', {
+  const response = await fetch('/api/upload', {
     method: 'POST',
     body: formData
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.statusText}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log("Upload success:", data);
-      alert("Video uploaded successfully to Google Drive!");
-      // Optionally, reset the UI or perform additional actions
-    })
-    .catch(err => {
-      console.error("Upload error:", err);
-      alert("Error uploading video. Please try again.");
-    });
+  });
+
+  if (!response.ok) {
+    throw new Error(`Server error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  if (!data.success) {
+    throw new Error(data.error || 'Unknown error during upload.');
+  }
+
+  return data;
 }
+
+// Optional: Handle window unload to clean up
+window.addEventListener('beforeunload', () => {
+  if (localVideo.srcObject) {
+    localVideo.srcObject.getTracks().forEach(track => track.stop());
+  }
+});
