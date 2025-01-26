@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Music & Video Recorder</title>
+  </head>
+  <body>
+    <h1>Welcome to the Music & Video Recorder</h1>
+    <p>
+      You are now volunteering to participate in the collection of a multimodal dataset
+      which matches music with facial expression and hand gesture.
+      Now you will draw a number to decide which music you will be listening to and have a trial listen to the music track!
+    </p>
+    <!-- Button to draw a card/number -->
+    <button id="draw-button">Draw a Card</button>
+    <div id="card-display"></div>
+
+    <!-- Audio player (hidden or visible) -->
+    <audio id="audio-player" controls style="display:none;"></audio>
+      <!-- Local camera preview video (initially hidden or styled as needed) -->
+    <video 
+      id="local-video" 
+      autoplay 
+      muted 
+      style="display:none; width: 320px; height: 240px; border: 1px solid #ccc;"
+    ></video>
+
+    <!-- Recording controls -->
+    <button id="record-button" disabled>Start Recording</button>
+    <button id="stop-button" disabled>Stop Recording</button>
+
+    <!-- Script -->
+    <script src="script.js"></script>
+  </body>
+</html>
