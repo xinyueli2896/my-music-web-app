@@ -5,6 +5,9 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 
+// 0) Load environment variables from .env (for local development)
+require('dotenv').config();
+
 // 1) Express initialization
 const app = express();
 
@@ -17,22 +20,24 @@ const PORT = process.env.PORT || 3000;
 const upload = multer({ dest: 'uploads/' });
 
 // 3) Google Drive Auth - service account
-//    Replace with the path to your JSON key file or load from environment
-const KEYFILEPATH = path.join(__dirname, 'my-video-web-449011-cc4dd6f5fdce.json'); 
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+
+// Decode and parse the service account JSON from the environment variable
+const decodedCredentials = Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, 'base64').toString('utf-8');
+const credentials = JSON.parse(decodedCredentials);
 
 // Create an auth object from the service account
 const auth = new google.auth.GoogleAuth({
-  keyFile: KEYFILEPATH,
+  credentials: credentials,
   scopes: SCOPES,
 });
 
 const SUBFOLDER_MAP = {
-    '1.mp3': '1jORtSeAsseT0V3xYR9dihoZKtiERRJK',
-    '2.mp3': '1dYjq1N9dxa7QKbQDdVp59uWGIQdHSE60',
-    '3.mp3': '1AQ5_72gaTg_rji9g7IC7G_D0xR7XjyUq'
-    // etc.
-  };
+  '1.mp3': '1jORtSeAsseT0V3xYR9dihoZKtiERRJK',
+  '2.mp3': '1dYjq1N9dxa7QKbQDdVp59uWGIQdHSE60',
+  '3.mp3': '1AQ5_72gaTg_rji9g7IC7G_D0xR7XjyUq'
+  // Add more mappings as needed
+};
 
 // 4) Upload route
 app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
@@ -47,17 +52,14 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
     // Determine target file name and path
     const originalName = req.file.originalname || 'untitled.webm';
     const localFilePath = req.file.path; // e.g. 'uploads/abc123'
-    // const mimeType = req.file.mimetype;
 
     const trackName = req.body.trackName;
-    // Optional: If you want to store files in a specific folder on Drive,
-    // replace `folderIdHere` with a real folder ID
-    const folderId = SUBFOLDER_MAP[trackName] || '1kaua6xYUe-Rl7Z0uFBhcsG_GpKb18Db-';  // e.g. '1A2B3CsomeUniqueId'
-    
+    const folderId = SUBFOLDER_MAP[trackName] || '1kaua6xYUe-Rl7Z0uFBhcsG_GpKb18Db-';  // Default folder ID
+
     // 5) Upload to Google Drive
     const fileMetadata = {
       name: originalName,
-      parents: [folderId], // optional, remove if you want to store in root
+      parents: [folderId], // Optional: specify a folder ID in Google Drive
     };
     const media = {
       mimeType: req.file.mimetype,
