@@ -149,20 +149,18 @@ stopButton.addEventListener('click', () => {
 
 // 6. Handle Recording Stop
 function handleRecordingStop() {
-  const recordedBlob = new Blob(chunks, { type: 'video/webm' });
+  // Assign the recorded blob to the global variable
+  recordedBlob = new Blob(chunks, { type: 'video/webm' });
   console.log("Recorded Blob:", recordedBlob);
-  
-  // Store the recorded blob for potential upload
-  this.recordedBlob = recordedBlob;
 
   // Show post-recording controls
   postRecordControls.style.display = 'block';
 
-  // Optionally, show a status message or prompt
+  // Update status message
   statusMessage.style.display = 'block';
   statusText.textContent = 'Would you like to re-record or upload your video?';
 
-  // Optionally, show the spinner (hidden initially)
+  // Hide spinner initially
   spinner.style.display = 'none';
 
   // Optional: Set a timeout to auto-upload after 30 seconds
