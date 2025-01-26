@@ -1,73 +1,353 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Music & Video Recorder</title>
+  <!-- Google Fonts for improved typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Poppins:wght@600&display=swap" rel="stylesheet">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-p6VJb0ovr0zEOIqoV8I9z1ZlkrGc4HeWH4JqYblSb9nBpXlBFAkFsGqK+6jhkU31OcdN68e9KZndkZgDew4bMQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
-    /* Basic styling for better visibility */
+    /* Reset some default styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    #local-video {
-      border: 1px solid #ccc;
-      margin-top: 10px;
-    }
-    button {
-      margin: 5px;
-      padding: 10px 20px;
-      font-size: 16px;
-    }
-    #card-display {
-      margin-top: 10px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    #status-message {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
       color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 2.5rem;
+      color: #4a90e2;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    p {
+      font-size: 1rem;
+      max-width: 600px;
+      text-align: center;
+      margin-bottom: 30px;
+      line-height: 1.6;
+      color: #555;
+    }
+
+    /* Username Display */
+    #username-display {
+      background-color: #fff;
+      padding: 15px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 25px;
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    #username-display.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Button Styles */
+    button {
+      background-color: #4a90e2;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 25px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      margin: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button i {
+      margin-right: 8px;
+    }
+
+    button:hover {
+      background-color: #357ABD;
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      background-color: #2a6496;
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      background-color: #a0c4e8;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Video and Audio Player */
+    #local-video, #audio-player {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-top: 15px;
+      max-width: 100%;
+      width: 320px;
+      height: 240px;
+      background-color: #000;
+    }
+
+    /* Card Display */
+    #card-display {
+      background-color: #fff;
+      padding: 15px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      font-size: 1.2rem;
+      font-weight: 500;
+      margin-bottom: 25px;
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    #card-display.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Post-Recording Controls */
+    #post-record-controls {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    #post-record-controls.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Status Message */
+    #status-message {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #fff;
+      padding: 15px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      font-size: 1rem;
+      font-weight: 500;
+      margin-top: 25px;
+      width: 100%;
+      max-width: 500px;
+      color: #333;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    #status-message.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Spinner Styles */
+    .spinner {
+      width: 40px; /* Increased size */
+      height: 40px; /* Increased size */
+      border: 5px solid rgba(0, 0, 0, 0.1);
+      border-top-color: #4a90e2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 15px;
+      display: none; /* Initially hidden */
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2rem;
+      }
+
+      button {
+        width: 100%;
+        max-width: 300px;
+      }
+
+      #local-video, #audio-player {
+        width: 100%;
+        max-width: 300px;
+        height: auto;
+      }
+
+      #post-record-controls {
+        flex-direction: column;
+      }
+
+      #post-record-controls button {
+        width: 100%;
+        max-width: 300px;
+      }
+
+      #status-message {
+        flex-direction: column;
+      }
+
+      .spinner {
+        margin-left: 0;
+        margin-top: 10px;
+      }
+    }
+
+    /* Media Release Modal Styles */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed; /* Stay in place */
+      z-index: 1000; /* Sit on top */
+      left: 0;
+      top: 0;
+      width: 100%; /* Full width */
+      height: 100%; /* Full height */
+      overflow: auto; /* Enable scroll if needed */
+      background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+    }
+
+    .modal-content {
+      background-color: #fff;
+      margin: 10% auto; /* 10% from the top and centered */
+      padding: 30px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 600px; /* Could be more or less, depending on screen size */
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      animation: fadeIn 0.5s;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(-20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    .close-button {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+      color: #000;
+      text-decoration: none;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .modal-buttons button {
+      margin-left: 10px;
+    }
+
+    /* Responsive Modal */
+    @media (max-width: 600px) {
+      .modal-content {
+        width: 90%;
+        padding: 20px;
+      }
     }
   </style>
 </head>
 <body>
+  <h1>Music & Video Recorder</h1>
+  
   <p>
     You are now volunteering to participate in the collection of a multimodal dataset
-    which matches music with facial expression and hand gesture.
-    Now you will draw a number to decide which music you will be listening to.
+    which matches music with facial expressions and hand gestures.
+    Draw a number to decide which music you will be listening to and start recording your video.
   </p>
 
-  <h1>Welcome to the Music & Video Recorder</h1>
-  
   <!-- Username Display -->
-  <div id="username-display" style="margin-bottom: 20px; font-size: 18px; font-weight: bold;">
+  <div id="username-display">
     Username: <span id="username"></span>
   </div>
 
   <!-- Button to draw a card/number -->
-  <button id="draw-button">Draw a Card</button>
+  <button id="draw-button"><i class="fas fa-dice"></i> Draw a Card</button>
+  
+  <!-- Card Display -->
   <div id="card-display"></div>
-
+  
   <!-- Audio player (hidden initially) -->
   <audio id="audio-player" controls style="display:none;"></audio>
-
+  
   <!-- Local camera preview (hidden initially) -->
-  <video id="local-video" autoplay muted style="display:none; width: 320px; height: 240px;"></video>
-
+  <video id="local-video" autoplay muted style="display:none;"></video>
+  
   <!-- Recording controls (initially disabled) -->
-  <button id="record-button" disabled>Start Recording</button>
-  <button id="stop-button" disabled>Stop Recording</button>
-
+  <button id="record-button" disabled><i class="fas fa-circle"></i> Start Recording</button>
+  <button id="stop-button" disabled><i class="fas fa-stop"></i> Stop Recording</button>
+  
   <!-- Post-Recording Controls (hidden initially) -->
-  <div id="post-record-controls" style="display:none; margin-top: 10px;">
-    <button id="re-record-button">Re-record</button>
-    <button id="upload-button">Upload</button>
+  <div id="post-record-controls" style="display:none;">
+    <button id="re-record-button"><i class="fas fa-redo"></i> Re-record</button>
+    <button id="upload-button"><i class="fas fa-upload"></i> Upload</button>
   </div>
-
-  <!-- Status Message with Spinner -->
-  <div id="status-message" style="display:none; margin-top: 10px; font-weight: bold;">
+  
+  <!-- Status Message with Enlarged Spinner -->
+  <div id="status-message" style="display:none;">
     <span id="status-text">Uploading your video to Google Drive...</span>
-    <img id="spinner" src="spinner.gif" alt="Loading..." style="width:20px; height:20px; vertical-align: middle; display:none;">
+    <div id="spinner" class="spinner"></div>
   </div>
 
+  <!-- Media Release Modal -->
+  <div id="media-release-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" id="close-modal">&times;</span>
+      <h2>Media Release Agreement</h2>
+      <p>
+        By agreeing to this media release, you consent to the collection and use of your video recordings, which include facial data, for the purpose of model training. Your data will be handled with the utmost confidentiality and will not be used for commercial purposes. You have the right to withdraw your consent at any time.
+      </p>
+      <div class="modal-buttons">
+        <button id="agree-button"><i class="fas fa-check-circle"></i> Agree</button>
+        <button id="decline-button"><i class="fas fa-times-circle"></i> Decline</button>
+      </div>
+    </div>
+  </div>
+  
   <!-- Link to your script -->
   <script src="script.js"></script>
 </body>

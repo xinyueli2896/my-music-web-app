@@ -17,7 +17,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/audio', express.static(path.join(__dirname, 'audio')));
 
 // 2) Multer config: store file temporarily in 'uploads/' folder
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ 
+  dest: 'uploads/',
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit (adjust as needed)
+});
 
 // 3) Google Drive Auth - service account
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
@@ -65,7 +68,18 @@ function generateFilenameWithUsername(username, extension = 'webm') {
 // 4) Upload route
 app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
   if (!req.file) {
-    return res.status(400).send('No file uploaded.');
+    return res.status(400).json({ success: false, error: 'No file uploaded.' });
+  }
+
+  // Validate user consent
+  const consentGiven = req.body.consentGiven;
+  if (consentGiven !== 'true') {
+    // Delete the uploaded file as consent was not given
+    fs.unlink(req.file.path, (err) => {
+      if (err) console.error('Error deleting file without consent:', err);
+      else console.log('File deleted due to lack of consent:', req.file.path);
+    });
+    return res.status(400).json({ success: false, error: 'Consent not given for media release.' });
   }
 
   try {

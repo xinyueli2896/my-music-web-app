@@ -30,6 +30,8 @@ function setUsername() {
     localStorage.setItem('username', username);
   }
   document.getElementById('username').textContent = username;
+  // Add 'show' class for transition
+  document.getElementById('username-display').classList.add('show');
 }
 
 // Call setUsername when the page loads
@@ -58,6 +60,59 @@ const statusMessage = document.getElementById('status-message');
 const statusText = document.getElementById('status-text');
 const spinner = document.getElementById('spinner');
 
+// Media Release Modal Elements
+const mediaReleaseModal = document.getElementById('media-release-modal');
+const closeModalButton = document.getElementById('close-modal');
+const agreeButton = document.getElementById('agree-button');
+const declineButton = document.getElementById('decline-button');
+
+// Function to open the Media Release Modal
+function openMediaReleaseModal() {
+  mediaReleaseModal.style.display = 'block';
+}
+
+// Function to close the Media Release Modal
+function closeMediaReleaseModal() {
+  mediaReleaseModal.style.display = 'none';
+}
+
+// Function to handle user agreeing to the media release
+function handleAgree() {
+  closeMediaReleaseModal();
+  startRecordingProcess();
+}
+
+// Function to handle user declining the media release
+function handleDecline() {
+  closeMediaReleaseModal();
+  alert("You have declined the media release. Recording will not proceed.");
+  // Optionally, redirect the user or disable certain functionalities
+  // For this example, we'll simply disable the record button
+  recordButton.disabled = true;
+}
+
+// Event listeners for modal buttons
+closeModalButton.addEventListener('click', closeMediaReleaseModal);
+agreeButton.addEventListener('click', handleAgree);
+declineButton.addEventListener('click', handleDecline);
+
+// Close the modal if the user clicks outside the modal content
+window.addEventListener('click', (event) => {
+  if (event.target == mediaReleaseModal) {
+    closeMediaReleaseModal();
+  }
+});
+
+// Function to start the recording process after consent
+function startRecordingProcess() {
+  // Enable the record button
+  recordButton.disabled = false;
+  // Persist consent
+  localStorage.setItem('consentGiven', 'true');
+  // Optionally, inform the user that they can now start recording
+  alert("You have agreed to the media release. You can now start recording.");
+}
+
 // Function to reset the recording state
 function resetRecordingState() {
   mediaRecorder = null;
@@ -76,7 +131,9 @@ function resetRecordingState() {
   recordButton.disabled = true;
   stopButton.disabled = true;
   postRecordControls.style.display = 'none';
+  postRecordControls.classList.remove('show');
   statusMessage.style.display = 'none';
+  statusMessage.classList.remove('show');
 }
 
 // 1. DRAW A CARD (randomly pick a number)
@@ -86,6 +143,7 @@ drawButton.addEventListener('click', async () => {
   cardNumber = Math.floor(Math.random() * totalCards) + 1;
 
   cardDisplay.textContent = "You drew card #" + cardNumber;
+  cardDisplay.classList.add('show');
 
   // 2. PLAY MUSIC CORRESPONDING TO THAT NUMBER
   audioPlayer.src = `/audio/${cardNumber}.mp3`;
@@ -120,13 +178,20 @@ drawButton.addEventListener('click', async () => {
     };
     mediaRecorder.onstop = handleRecordingStop;
 
-    // Enable the record button and disable the stop button
-    recordButton.disabled = false;
-    stopButton.disabled = true;
+    // Check if consent is already given
+    const consentGiven = localStorage.getItem('consentGiven');
+    if (consentGiven === 'true') {
+      startRecordingProcess();
+    } else {
+      // Show the Media Release Modal to seek user consent
+      openMediaReleaseModal();
+    }
 
     // Hide post-record controls and status message in case of previous recordings
     postRecordControls.style.display = 'none';
+    postRecordControls.classList.remove('show');
     statusMessage.style.display = 'none';
+    statusMessage.classList.remove('show');
 
   } catch (err) {
     console.error("Error accessing camera/mic:", err);
@@ -166,7 +231,9 @@ recordButton.addEventListener('click', () => {
 
     // Hide post-record controls and status message in case of previous recordings
     postRecordControls.style.display = 'none';
+    postRecordControls.classList.remove('show');
     statusMessage.style.display = 'none';
+    statusMessage.classList.remove('show');
 
     // Define the 'ended' event listener
     audioEndedListener = () => {
@@ -218,10 +285,12 @@ function handleRecordingStop() {
   console.log("Recorded Blob Assigned to Global Variable:", recordedBlob);
 
   // Show post-recording controls
-  postRecordControls.style.display = 'block';
+  postRecordControls.style.display = 'flex';
+  postRecordControls.classList.add('show');
 
   // Update status message
-  statusMessage.style.display = 'block';
+  statusMessage.style.display = 'flex';
+  statusMessage.classList.add('show');
   statusText.textContent = 'Would you like to re-record or upload your video?';
 
   // Hide spinner initially
@@ -249,7 +318,9 @@ reRecordButton.addEventListener('click', () => {
 
   // Hide post-recording controls and status message
   postRecordControls.style.display = 'none';
+  postRecordControls.classList.remove('show');
   statusMessage.style.display = 'none';
+  statusMessage.classList.remove('show');
 
   // Optionally, stop any ongoing music
   audioPlayer.pause();
@@ -283,9 +354,10 @@ uploadButton.addEventListener('click', () => {
   const username = localStorage.getItem('username') || 'UnknownUser';
 
   // Show a status message indicating upload is in progress
-  statusMessage.style.display = 'block';
+  statusMessage.style.display = 'flex';
+  statusMessage.classList.add('show');
   statusText.textContent = 'Uploading your video to Google Drive...';
-  spinner.style.display = 'inline-block'; // Changed to 'inline-block' for better visibility
+  spinner.style.display = 'block'; // Changed to 'block' for better visibility
 
   // Disable upload and re-record buttons to prevent multiple uploads
   uploadButton.disabled = true;
@@ -299,7 +371,7 @@ uploadButton.addEventListener('click', () => {
 
       // Show success message
       statusText.textContent = 'Video uploaded successfully to Google Drive!';
-      
+
       // Optionally, reset the recording state after a delay
       setTimeout(() => {
         resetRecordingState();
