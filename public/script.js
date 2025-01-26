@@ -398,12 +398,14 @@ uploadButton.addEventListener('click', () => {
 });
 
 // 9. UPLOAD THE VIDEO
+// 9. UPLOAD THE VIDEO
 async function uploadVideo(videoBlob, cardNum, username) {
   const formData = new FormData();
-  formData.append('videoFile', videoBlob, `recording.webm`); // Use a generic name; server assigns the timestamped name
+  formData.append('videoFile', videoBlob, `recording.webm`);
   formData.append('cardNumber', cardNum);
   formData.append('trackName', `${cardNum}.mp3`);
-  formData.append('username', username); // Include the username
+  formData.append('username', username);
+  formData.append('consentGiven', 'true'); // Include consent status
 
   const response = await fetch('/api/upload', {
     method: 'POST',
@@ -411,7 +413,8 @@ async function uploadVideo(videoBlob, cardNum, username) {
   });
 
   if (!response.ok) {
-    throw new Error(`Server error: ${response.statusText}`);
+    const errorData = await response.json();
+    throw new Error(errorData.error || `Server error: ${response.statusText}`);
   }
 
   const data = await response.json();
@@ -422,10 +425,3 @@ async function uploadVideo(videoBlob, cardNum, username) {
 
   return data;
 }
-
-// Optional: Handle window unload to clean up
-window.addEventListener('beforeunload', () => {
-  if (localVideo.srcObject) {
-    localVideo.srcObject.getTracks().forEach(track => track.stop());
-  }
-});

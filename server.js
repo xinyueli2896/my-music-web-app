@@ -68,6 +68,7 @@ function generateFilenameWithUsername(username, extension = 'webm') {
 // 4) Upload route
 app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
   if (!req.file) {
+    console.error('Upload Error: No file uploaded.');
     return res.status(400).json({ success: false, error: 'No file uploaded.' });
   }
 
@@ -76,9 +77,13 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
   if (consentGiven !== 'true') {
     // Delete the uploaded file as consent was not given
     fs.unlink(req.file.path, (err) => {
-      if (err) console.error('Error deleting file without consent:', err);
-      else console.log('File deleted due to lack of consent:', req.file.path);
+      if (err) {
+        console.error('Error deleting file without consent:', err);
+      } else {
+        console.log('File deleted due to lack of consent:', req.file.path);
+      }
     });
+    console.warn('Upload Error: Consent not given for media release.');
     return res.status(400).json({ success: false, error: 'Consent not given for media release.' });
   }
 
@@ -99,8 +104,10 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
     // Generate filename with username and timestamp
     const filename = generateFilenameWithUsername(username, 'webm'); // Change 'webm' to 'mp4' if converting
 
+    console.log(`Preparing to upload file: ${filename} to folder ID: ${folderId}`);
+
     // 5) [Optional] Convert WebM to MP4 using FFmpeg
-    // If you want to convert the video to MP4, uncomment the following block and ensure FFmpeg is installed on the server.
+    // Uncomment if using FFmpeg for conversion
 
     /*
     const convertedFilePath = path.join('uploads', `${filename}.mp4`);
@@ -130,6 +137,7 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
       body: fs.createReadStream(localFilePath), // Use 'convertedFilePath' if converting
     };
 
+    console.log('Starting upload to Google Drive...');
     const driveResponse = await driveService.files.create({
       requestBody: fileMetadata,
       media: media,
