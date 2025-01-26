@@ -102,8 +102,18 @@
       transform: none;
     }
 
+    /* Media Containers */
+    .media-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 500px;
+    }
+
     /* Video and Audio Player */
-    #local-video, #audio-player {
+    #local-video {
       border: none;
       border-radius: 15px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -112,6 +122,32 @@
       width: 320px;
       height: 240px;
       background-color: #000;
+      display: none; /* Hidden initially */
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    #local-video.show {
+      opacity: 1;
+    }
+
+    #audio-player {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-top: 15px;
+      max-width: 100%;
+      width: 320px;
+      height: 30px; /* Adjusted height for audio controls */
+      background-color: #fff;
+      display: none; /* Hidden initially */
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    #audio-player.show {
+      display: block;
+      opacity: 1;
     }
 
     /* Card Display */
@@ -144,6 +180,7 @@
       opacity: 0;
       transform: translateY(-10px);
       transition: opacity 0.5s ease, transform 0.5s ease;
+      display: none; /* Hidden initially */
     }
 
     #post-record-controls.show {
@@ -169,6 +206,7 @@
       opacity: 0;
       transform: translateY(-10px);
       transition: opacity 0.5s ease, transform 0.5s ease;
+      display: none; /* Hidden initially */
     }
 
     #status-message.show {
@@ -190,6 +228,32 @@
 
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    /* Progress Bar Styles */
+    #upload-progress-container {
+      width: 100%;
+      max-width: 500px;
+      background-color: #ddd;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-top: 10px;
+      display: none; /* Hidden initially */
+    }
+
+    #upload-progress {
+      height: 20px;
+      width: 0%;
+      background-color: #4a90e2;
+      transition: width 0.3s ease;
+    }
+
+    /* Error Message */
+    #error-message {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+      display: none; /* Hidden initially */
     }
 
     /* Responsive Design */
@@ -225,6 +289,10 @@
       .spinner {
         margin-left: 0;
         margin-top: 10px;
+      }
+
+      #upload-progress-container {
+        max-width: 300px;
       }
     }
 
@@ -306,44 +374,57 @@
   </div>
 
   <!-- Button to draw a card/number -->
-  <button id="draw-button"><i class="fas fa-dice"></i> Draw a Card</button>
+  <button id="draw-button" aria-label="Draw a Card"><i class="fas fa-dice"></i> Draw a Card</button>
   
   <!-- Card Display -->
   <div id="card-display"></div>
   
-  <!-- Audio player (hidden initially) -->
-  <audio id="audio-player" controls style="display:none;"></audio>
+  <!-- Media Containers -->
+  <div class="media-container">
+    <!-- Audio player (hidden initially) -->
+    <audio id="audio-player" controls aria-label="Audio Player"></audio>
+  </div>
   
-  <!-- Local camera preview (hidden initially) -->
-  <video id="local-video" autoplay muted style="display:none;"></video>
+  <div class="media-container">
+    <!-- Local camera preview (hidden initially) -->
+    <video id="local-video" autoplay muted aria-label="Local Video Preview"></video>
+  </div>
   
   <!-- Recording controls (initially disabled) -->
-  <button id="record-button" disabled><i class="fas fa-circle"></i> Start Recording</button>
-  <button id="stop-button" disabled><i class="fas fa-stop"></i> Stop Recording</button>
+  <button id="record-button" disabled aria-label="Start Recording"><i class="fas fa-circle"></i> Start Recording</button>
+  <button id="stop-button" disabled aria-label="Stop Recording"><i class="fas fa-stop"></i> Stop Recording</button>
   
   <!-- Post-Recording Controls (hidden initially) -->
-  <div id="post-record-controls" style="display:none;">
-    <button id="re-record-button"><i class="fas fa-redo"></i> Re-record</button>
-    <button id="upload-button"><i class="fas fa-upload"></i> Upload</button>
+  <div id="post-record-controls">
+    <button id="re-record-button" aria-label="Re-record"><i class="fas fa-redo"></i> Re-record</button>
+    <button id="upload-button" aria-label="Upload"><i class="fas fa-upload"></i> Upload</button>
   </div>
   
   <!-- Status Message with Enlarged Spinner -->
-  <div id="status-message" style="display:none;">
+  <div id="status-message">
     <span id="status-text">Uploading your video to Google Drive...</span>
     <div id="spinner" class="spinner"></div>
   </div>
 
+  <!-- Upload Progress Bar -->
+  <div id="upload-progress-container">
+    <div id="upload-progress"></div>
+  </div>
+
+  <!-- Error Message -->
+  <div id="error-message"></div>
+
   <!-- Media Release Modal -->
-  <div id="media-release-modal" class="modal">
+  <div id="media-release-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-content">
-      <span class="close-button" id="close-modal">&times;</span>
-      <h2>Media Release Agreement</h2>
+      <span class="close-button" id="close-modal" aria-label="Close">&times;</span>
+      <h2 id="modal-title">Media Release Agreement</h2>
       <p>
         By agreeing to this media release, you consent to the collection and use of your video recordings, which include facial data, for the purpose of model training. Your data will be handled with the utmost confidentiality and will not be used for commercial purposes. You have the right to withdraw your consent at any time.
       </p>
       <div class="modal-buttons">
-        <button id="agree-button"><i class="fas fa-check-circle"></i> Agree</button>
-        <button id="decline-button"><i class="fas fa-times-circle"></i> Decline</button>
+        <button id="agree-button" aria-label="Agree to Media Release"><i class="fas fa-check-circle"></i> Agree</button>
+        <button id="decline-button" aria-label="Decline Media Release"><i class="fas fa-times-circle"></i> Decline</button>
       </div>
     </div>
   </div>
