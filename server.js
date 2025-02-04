@@ -35,13 +35,33 @@ const auth = new google.auth.GoogleAuth({
   scopes: SCOPES,
 });
 
-// Map track names to Google Drive folder IDs
-const SUBFOLDER_MAP = {
-  '1.mp3': '1jORtSeAsseT0V3xYR9dihoZKtiERRJK',
-  '2.mp3': '1dYjq1N9dxa7QKbQDdVp59uWGIQdHSE60',
-  '3.mp3': '1AQ5_72gaTg_rji9g7IC7G_D0xR7XjyUq'
-  // Add more mappings as needed
-};
+// Load existing subfolder map (if exists), or initialize a new one
+const SUBFOLDER_MAP_PATH = path.join(__dirname, 'subfolder_map.json');
+let SUBFOLDER_MAP = {};
+
+if (fs.existsSync(SUBFOLDER_MAP_PATH)) {
+  SUBFOLDER_MAP = JSON.parse(fs.readFileSync(SUBFOLDER_MAP_PATH, 'utf-8'));
+} else {
+  SUBFOLDER_MAP = {}; // Initialize empty mapping
+}
+
+// Function to create a new folder in Google Drive
+async function createDriveFolder(folderName) {
+  const driveService = google.drive({ version: 'v3', auth: await auth.getClient() });
+
+  const fileMetadata = {
+    name: folderName,
+    mimeType: 'application/vnd.google-apps.folder',
+    parents: ['1kaua6xYUe-Rl7Z0uFBhcsG_GpKb18Db-'] // Root parent folder ID (update this!)
+  };
+
+  const folder = await driveService.files.create({
+    requestBody: fileMetadata,
+    fields: 'id'
+  });
+
+  return folder.data.id; // Return newly created folder ID
+}
 
 // Function to sanitize filenames by removing or replacing invalid characters
 function sanitizeFilename(filename) {
@@ -49,21 +69,21 @@ function sanitizeFilename(filename) {
 }
 
 // Function to generate a timestamped filename with username
-function generateFilenameWithUsername(username, extension = 'webm') {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are zero-based
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const seconds = String(now.getSeconds()).padStart(2, '0');
-  const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
+// function generateFilenameWithUsername(username, extension = 'webm') {
+//   const now = new Date();
+//   const year = now.getFullYear();
+//   const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+//   const day = String(now.getDate()).padStart(2, '0');
+//   const hours = String(now.getHours()).padStart(2, '0');
+//   const minutes = String(now.getMinutes()).padStart(2, '0');
+//   const seconds = String(now.getSeconds()).padStart(2, '0');
+//   const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
   
-  // Sanitize username to ensure it's safe for filenames
-  const safeUsername = sanitizeFilename(username);
+//   // Sanitize username to ensure it's safe for filenames
+//   const safeUsername = sanitizeFilename(username);
   
-  return `${safeUsername}_${year}-${month}-${day}_${hours}-${minutes}-${seconds}-${milliseconds}.${extension}`;
-}
+//   return `${safeUsername}_${year}-${month}-${day}_${hours}-${minutes}-${seconds}-${milliseconds}.${extension}`;
+// }
 
 // 4) Upload route
 app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
@@ -88,56 +108,39 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
   }
 
   try {
-    // Create a Drive client
     const driveService = google.drive({ version: 'v3', auth: await auth.getClient() });
 
-    // Determine target file name and path
-    const originalName = req.file.originalname || 'untitled.webm';
-    const localFilePath = req.file.path; // e.g., 'uploads/abc123'
-
     const trackName = req.body.trackName;
-    const folderId = SUBFOLDER_MAP[trackName] || '1kaua6xYUe-Rl7Z0uFBhcsG_GpKb18Db-';  // Default folder ID
+
+    let folderId;
+    if (SUBFOLDER_MAP[trackName]) {
+      folderId = SUBFOLDER_MAP[trackName]; // Use existing folder
+    } else {
+      console.log(`Creating new folder for ${trackName}...`);
+      folderId = await createDriveFolder(trackName);
+      SUBFOLDER_MAP[trackName] = folderId; // Update mapping
+
+      // Persist updated mapping to file
+      fs.writeFileSync(SUBFOLDER_MAP_PATH, JSON.stringify(SUBFOLDER_MAP, null, 4), 'utf-8');
+    }
 
     // Retrieve the username from the form data
     const username = req.body.username || 'UnknownUser';
 
     // Generate filename with username and timestamp
-    const filename = generateFilenameWithUsername(username, 'webm'); // Change 'webm' to 'mp4' if converting
+    const filename = `${username}_${Date.now()}.webm`;
 
-    console.log(`Preparing to upload file: ${filename} to folder ID: ${folderId}`);
+    console.log(`Uploading file: ${filename} to folder ID: ${folderId}`);
 
-    // 5) [Optional] Convert WebM to MP4 using FFmpeg
-    // Uncomment if using FFmpeg for conversion
-
-    /*
-    const convertedFilePath = path.join('uploads', `${filename}.mp4`);
-    await new Promise((resolve, reject) => {
-      exec(`ffmpeg -i ${localFilePath} ${convertedFilePath}`, (error, stdout, stderr) => {
-        if (error) {
-          console.error('FFmpeg conversion error:', error);
-          reject(error);
-        } else {
-          resolve();
-        }
-      });
-    });
-
-    // Update variables for the converted file
-    const finalFilePath = convertedFilePath;
-    const finalMimeType = 'video/mp4';
-    */
-
-    // 5) Upload to Google Drive (WebM format)
     const fileMetadata = {
-      name: filename, // Use the generated filename with username
-      parents: [folderId], // Specify the target Google Drive folder ID
+      name: filename,
+      parents: [folderId],
     };
     const media = {
-      mimeType: 'video/webm', // Change to 'video/mp4' if converting
-      body: fs.createReadStream(localFilePath), // Use 'convertedFilePath' if converting
+      mimeType: 'video/webm',
+      body: fs.createReadStream(req.file.path),
     };
 
-    console.log('Starting upload to Google Drive...');
     const driveResponse = await driveService.files.create({
       requestBody: fileMetadata,
       media: media,
@@ -145,23 +148,11 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
     });
 
     console.log('Uploaded file Id:', driveResponse.data.id);
-    console.log('Uploaded file Name:', driveResponse.data.name);
 
-    // 6) [Optional] Delete the local file to save space
-    fs.unlink(localFilePath, (err) => {
+    fs.unlink(req.file.path, (err) => {
       if (err) console.error('Error deleting temp file:', err);
-      else console.log('Temporary file deleted:', localFilePath);
     });
 
-    // If you converted the file, delete the original WebM file as well
-    /*
-    fs.unlink(localFilePath, (err) => {
-      if (err) console.error('Error deleting original WebM file:', err);
-      else console.log('Original WebM file deleted:', localFilePath);
-    });
-    */
-
-    // 7) Respond to client
     return res.json({
       success: true,
       driveFileId: driveResponse.data.id,

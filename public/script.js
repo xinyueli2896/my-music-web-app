@@ -146,7 +146,7 @@ function resetRecordingState() {
 // 1. DRAW A CARD (randomly pick a number)
 drawButton.addEventListener('click', async () => {
   // Suppose you have 3 tracks: track1.mp3, track2.mp3, track3.mp3
-  const totalCards = 3; 
+  const totalCards = 100; 
   cardNumber = Math.floor(Math.random() * totalCards) + 1;
 
   cardDisplay.textContent = "You drew card #" + cardNumber;
