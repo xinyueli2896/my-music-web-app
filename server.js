@@ -4,49 +4,53 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 
-// Load environment variables (for local development)
+// Load environment variables
 require('dotenv').config();
 
-// Initialize Express app
+// Initialize Express
 const app = express();
 
-// Serve static files from 'public' directory
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/audio', express.static(path.join(__dirname, 'audio')));
 
-// Configure Multer (store files temporarily)
-const upload = multer({ 
+// Multer configuration: store files temporarily in 'uploads/' folder
+const upload = multer({
   dest: 'uploads/',
   limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit
 });
 
-// Google Drive API authentication
+// Google Drive Authentication
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+
+// Decode service account credentials
 const decodedCredentials = Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, 'base64').toString('utf-8');
 const credentials = JSON.parse(decodedCredentials);
 
+// Create an auth object
 const auth = new google.auth.GoogleAuth({
   credentials: credentials,
   scopes: SCOPES,
 });
 
-// ** Google Drive Parent Folder (Where all videos will be stored) **
-const PARENT_FOLDER_ID = "1kaua6xYUe-Rl7Z0uFBhcsG_GpKb18Db-"; // <-- Change this to your Google Drive folder ID
+// Google Drive folder where all files will be stored
+const MAIN_FOLDER_ID = '1kaua6xYUe-Rl7Z0uFBhcsG_GpKb18Db-'; // Update this with your Drive folder ID
 
-// Function to sanitize filenames (remove invalid characters)
+// Function to sanitize filenames
 function sanitizeFilename(filename) {
-  return filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+  return filename.replace(/[^a-z0-9_\-\.]/gi, '_');
 }
 
 // Function to generate a formatted filename
-function generateFilename(musicIndex, username) {
+function generateFilename(trackIndex, username) {
   const now = new Date();
-  const timestamp = now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // YYYYMMDDHHMMSS format
+  const formattedDate = now.toISOString().replace(/:/g, '-').split('.')[0]; // Format YYYY-MM-DDTHH-MM-SS
   const safeUsername = sanitizeFilename(username);
-  return `${musicIndex}_${safeUsername}_${timestamp}.mp3`;
+
+  return `${trackIndex}_${safeUsername}_${formattedDate}.mp3`;
 }
 
-// ** Upload Route **
+// Upload route
 app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
   if (!req.file) {
     console.error('Upload Error: No file uploaded.');
@@ -65,43 +69,43 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
   try {
     const driveService = google.drive({ version: 'v3', auth: await auth.getClient() });
 
-    // Get user details from form data
-    const musicIndex = req.body.cardNumber || "unknown";
-    const username = req.body.username || "Anonymous";
+    // Get track index and username from request body
+    const trackIndex = req.body.trackName || 'UnknownTrack';
+    const username = req.body.username || 'UnknownUser';
 
-    // Generate formatted filename
-    const filename = generateFilename(musicIndex, username);
-    console.log(`Uploading file as: ${filename}`);
+    // Generate filename
+    const filename = generateFilename(trackIndex, username);
 
-    // Upload to Google Drive
+    console.log(`Uploading file: ${filename} to Google Drive folder ID: ${MAIN_FOLDER_ID}`);
+
     const fileMetadata = {
       name: filename,
-      parents: [PARENT_FOLDER_ID], // Upload to a single folder
+      parents: [MAIN_FOLDER_ID], // Upload all files to a single folder
     };
     const media = {
-      mimeType: 'audio/mp3', // Assuming files are MP3
+      mimeType: 'audio/mp3',
       body: fs.createReadStream(req.file.path),
     };
 
+    // Upload file to Google Drive
     const driveResponse = await driveService.files.create({
       requestBody: fileMetadata,
       media: media,
       fields: 'id, name, parents',
     });
 
-    console.log('Uploaded file Id:', driveResponse.data.id);
+    console.log('Uploaded file ID:', driveResponse.data.id);
 
-    // Delete local temporary file
+    // Delete temporary file after upload
     fs.unlink(req.file.path, (err) => {
       if (err) console.error('Error deleting temp file:', err);
     });
 
-    // Respond to client
     return res.json({
       success: true,
       driveFileId: driveResponse.data.id,
       driveFileName: driveResponse.data.name,
-      folderIdUsed: PARENT_FOLDER_ID
+      folderIdUsed: MAIN_FOLDER_ID
     });
 
   } catch (err) {
