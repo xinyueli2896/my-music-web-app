@@ -220,9 +220,11 @@ recordButton.addEventListener('click', () => {
   // Reset chunks
   chunks = [];
 
-  // Restart music from the beginning (optional)
+  // Automatically restart the audio from the beginning
   audioPlayer.currentTime = 0;
   audioPlayer.play();
+  // Disable manual seeking on the audio player during recording
+  audioPlayer.style.pointerEvents = 'none';
 
   // Start recording
   try {
@@ -275,9 +277,11 @@ stopButton.addEventListener('click', () => {
   // Disable the stop button
   stopButton.disabled = true;
 
-  // Stop the music playback
+  // Stop the music playback and reset the audio player
   audioPlayer.pause();
-  audioPlayer.currentTime = 0; // Reset to the beginning
+  audioPlayer.currentTime = 0;
+  // Re-enable manual seeking on the audio player now that recording has stopped
+  audioPlayer.style.pointerEvents = 'auto';
 
   // Remove the 'ended' event listener as the recording has been stopped manually
   if (audioEndedListener && audioPlayer) {
