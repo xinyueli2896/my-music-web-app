@@ -1,5 +1,3 @@
-// script.js
-
 // Arrays of adjectives and animals
 const adjectives = [
   "Brave", "Calm", "Delightful", "Eager", "Faithful", "Gentle",
@@ -86,8 +84,7 @@ function handleAgree() {
 function handleDecline() {
   closeMediaReleaseModal();
   alert("You have declined the media release. Recording will not proceed.");
-  // Optionally, redirect the user or disable certain functionalities
-  // For this example, we'll simply disable the record button
+  // Optionally, disable the record button
   recordButton.disabled = true;
 }
 
@@ -103,13 +100,44 @@ window.addEventListener('click', (event) => {
   }
 });
 
+// Function to initialize MediaRecorder and attach stream to local video preview
+async function initializeMediaRecorder() {
+  try {
+    // Request access to camera and microphone
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    
+    // Attach the stream to the local video element
+    localVideo.srcObject = stream;
+
+    // Validate MIME type support: Try MP4 first; if not, fallback to WebM
+    let options = { mimeType: 'video/mp4' };
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      console.warn(`${options.mimeType} is not supported, falling back to video/webm; codecs=vp8.`);
+      options = { mimeType: 'video/webm; codecs=vp8' };
+    }
+
+    // Initialize MediaRecorder with the chosen options
+    mediaRecorder = new MediaRecorder(stream, options);
+    chunks = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+    mediaRecorder.onstop = handleRecordingStop;
+  } catch (err) {
+    console.error("Error initializing media recorder:", err);
+    alert("Could not access camera/microphone. Error: " + err.message);
+  }
+}
+
 // Function to start the recording process after consent
 function startRecordingProcess() {
   // Enable the record button
   recordButton.disabled = false;
   // Persist consent
   localStorage.setItem('consentGiven', 'true');
-  // Optionally, inform the user that they can now start recording
   alert("You have agreed to the media release. You can now start recording.");
 }
 
@@ -135,10 +163,10 @@ function resetRecordingState() {
   statusMessage.style.display = 'none';
   statusMessage.classList.remove('show');
 
-  // Hide the video preview
+  // Hide the video preview and stop its stream
   localVideo.style.display = 'none';
   if (localVideo.srcObject) {
-    localVideo.srcObject.getTracks().forEach(track => track.stop()); // Stop all tracks
+    localVideo.srcObject.getTracks().forEach(track => track.stop());
     localVideo.srcObject = null;
   }
 }
@@ -157,57 +185,23 @@ drawButton.addEventListener('click', async () => {
   audioPlayer.style.display = 'block'; // Show audio controls
   audioPlayer.play();
 
-  // 3. REQUEST CAMERA PERMISSION & SET UP RECORDING
-  try {
-    // Request access to camera and microphone
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    
-    // Show the local camera feed in the <video> element only when recording
-    localVideo.srcObject = stream;       // Attach the stream to the video element
+  // 3. Initialize MediaRecorder and request camera/microphone access
+  await initializeMediaRecorder();
 
-    // Validate MIME type support: Try to record in MP4 first
-    let options = { mimeType: 'video/mp4' };
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-      console.warn(`${options.mimeType} is not supported, falling back to video/webm; codecs=vp8.`);
-      options = { mimeType: 'video/webm; codecs=vp8' };
-    }
-
-    // Initialize MediaRecorder with validated options
-    mediaRecorder = new MediaRecorder(stream, options);
-
-    chunks = [];
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        chunks.push(event.data);
-      }
-    };
-    mediaRecorder.onstop = handleRecordingStop;
-
-    // Check if consent is already given
-    const consentGiven = localStorage.getItem('consentGiven');
-    if (consentGiven === 'true') {
-      startRecordingProcess();
-    } else {
-      // Show the Media Release Modal to seek user consent
-      openMediaReleaseModal();
-    }
-
-    // Hide post-record controls and status message in case of previous recordings
-    postRecordControls.style.display = 'none';
-    postRecordControls.classList.remove('show');
-    statusMessage.style.display = 'none';
-    statusMessage.classList.remove('show');
-
-  } catch (err) {
-    console.error("Error accessing camera/mic:", err);
-    if (err.name === 'NotAllowedError') {
-      alert("Permission denied. Please allow access to camera and microphone.");
-    } else if (err.name === 'NotFoundError') {
-      alert("No camera or microphone found. Please connect a device.");
-    } else {
-      alert("Could not access camera or microphone. Error: " + err.message);
-    }
+  // Check if consent is already given
+  const consentGiven = localStorage.getItem('consentGiven');
+  if (consentGiven === 'true') {
+    startRecordingProcess();
+  } else {
+    // Show the Media Release Modal to seek user consent
+    openMediaReleaseModal();
   }
+
+  // Hide post-record controls and status message from previous recordings
+  postRecordControls.style.display = 'none';
+  postRecordControls.classList.remove('show');
+  statusMessage.style.display = 'none';
+  statusMessage.classList.remove('show');
 });
 
 // 4. START RECORDING
@@ -217,43 +211,37 @@ recordButton.addEventListener('click', () => {
     return;
   }
 
-  // Reset chunks
+  // Reset chunks and restart the audio
   chunks = [];
-
-  // Automatically restart the audio from the beginning
   audioPlayer.currentTime = 0;
   audioPlayer.play();
-  // Disable manual seeking on the audio player during recording
-  audioPlayer.style.pointerEvents = 'none';
+  audioPlayer.style.pointerEvents = 'none'; // Disable manual seeking during recording
 
-  // Start recording
   try {
     mediaRecorder.start();
     isRecording = true;
     console.log("Recording started...");
-    
-    // Disable the record button and enable the stop button
+
+    // Disable record button and enable stop button
     recordButton.disabled = true;
     stopButton.disabled = false;
 
-    // Show the video preview now that recording has started
+    // Show video preview
     localVideo.style.display = 'block';
 
-    // Hide post-record controls and status message in case of previous recordings
+    // Hide post-record controls and status message
     postRecordControls.style.display = 'none';
     postRecordControls.classList.remove('show');
     statusMessage.style.display = 'none';
     statusMessage.classList.remove('show');
 
-    // Define the 'ended' event listener
+    // Define and attach the 'ended' event listener on the audio player
     audioEndedListener = () => {
       console.log("Audio ended. Automatically stopping the recording.");
       if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
       }
     };
-
-    // Attach the 'ended' event listener to the audio player
     audioPlayer.addEventListener('ended', audioEndedListener);
 
   } catch (error) {
@@ -269,141 +257,115 @@ stopButton.addEventListener('click', () => {
     return;
   }
 
-  // Stop recording
   mediaRecorder.stop();
   isRecording = false;
   console.log("Recording stopped.");
-  
-  // Disable the stop button
+
+  // Disable stop button
   stopButton.disabled = true;
 
-  // Stop the music playback and reset the audio player
+  // Stop music playback and reset audio player
   audioPlayer.pause();
   audioPlayer.currentTime = 0;
-  // Re-enable manual seeking on the audio player now that recording has stopped
   audioPlayer.style.pointerEvents = 'auto';
 
-  // Remove the 'ended' event listener as the recording has been stopped manually
+  // Remove the 'ended' event listener
   if (audioEndedListener && audioPlayer) {
     audioPlayer.removeEventListener('ended', audioEndedListener);
     audioEndedListener = null;
   }
 
-  // Hide the video preview as recording has stopped
+  // Hide video preview and stop its stream
   localVideo.style.display = 'none';
   if (localVideo.srcObject) {
-    localVideo.srcObject.getTracks().forEach(track => track.stop()); // Stop all tracks
+    localVideo.srcObject.getTracks().forEach(track => track.stop());
     localVideo.srcObject = null;
   }
 });
 
 // 6. Handle Recording Stop
 function handleRecordingStop() {
-  // Create the recorded blob.
-  // Note: Even if we attempted to record as 'video/mp4', the resulting blob’s type will
-  // reflect what MediaRecorder actually recorded.
+  // Create the recorded blob using the MIME type from mediaRecorder
   recordedBlob = new Blob(chunks, { type: mediaRecorder.mimeType });
   console.log("Recorded Blob Assigned to Global Variable:", recordedBlob);
 
-  // Show post-recording controls
+  // Show post-recording controls and update status message
   postRecordControls.style.display = 'flex';
   postRecordControls.classList.add('show');
-
-  // Update status message
   statusMessage.style.display = 'flex';
   statusMessage.classList.add('show');
   statusText.textContent = 'Would you like to re-record or upload your video?';
-
-  // Hide spinner initially
   spinner.style.display = 'none';
 
-  // Optional: Set a timeout to auto-upload after 30 seconds
+  // Optional: auto-upload after 30 seconds
   uploadTimeout = setTimeout(() => {
     if (recordedBlob) {
       console.log("Auto-upload triggered after timeout.");
-      uploadButton.click(); // Automatically trigger the upload
+      uploadButton.click();
     }
-  }, 30000); // 30,000 milliseconds = 30 seconds
+  }, 30000);
 }
 
 // 7. RE-RECORD FUNCTIONALITY
-reRecordButton.addEventListener('click', () => {
-  // Clear any existing upload timeouts
+reRecordButton.addEventListener('click', async () => {
+  // Clear any existing upload timeout
   if (uploadTimeout) {
     clearTimeout(uploadTimeout);
     uploadTimeout = null;
   }
 
-  // Reset the recorded blob
+  // Reset the recorded blob and UI elements
   recordedBlob = null;
-
-  // Hide post-recording controls and status message
   postRecordControls.style.display = 'none';
   postRecordControls.classList.remove('show');
   statusMessage.style.display = 'none';
   statusMessage.classList.remove('show');
-
-  // Optionally, stop any ongoing music
   audioPlayer.pause();
   audioPlayer.currentTime = 0;
-
-  // Enable the record button and disable the stop button
   recordButton.disabled = false;
   stopButton.disabled = true;
+
+  // Reinitialize the MediaRecorder and camera stream for a new recording
+  await initializeMediaRecorder();
 });
 
 // 8. UPLOAD FUNCTIONALITY
 uploadButton.addEventListener('click', () => {
-  // Clear any existing upload timeouts
   if (uploadTimeout) {
     clearTimeout(uploadTimeout);
     uploadTimeout = null;
   }
 
   console.log("Upload Button Clicked. Current recordedBlob:", recordedBlob);
-
   if (!recordedBlob) {
     alert("No recording available to upload.");
     console.warn("No recording available to upload. recordedBlob is null.");
     return;
   }
 
-  // Retrieve the username from localStorage
   const username = localStorage.getItem('username') || 'UnknownUser';
 
-  // Show a status message indicating upload is in progress
   statusMessage.style.display = 'flex';
   statusMessage.classList.add('show');
   statusText.textContent = 'Uploading your video to Google Drive...';
-  spinner.style.display = 'block'; // Changed to 'block' for better visibility
+  spinner.style.display = 'block';
 
-  // Disable upload and re-record buttons to prevent multiple uploads
   uploadButton.disabled = true;
   reRecordButton.disabled = true;
 
   // 9. UPLOAD THE VIDEO FILE
   uploadVideo(recordedBlob, cardNumber, username)
     .then(() => {
-      // Hide spinner
       spinner.style.display = 'none';
-
-      // Show success message
       statusText.textContent = 'Video uploaded successfully to Google Drive!';
-
-      // Optionally, reset the recording state after a delay
       setTimeout(() => {
         resetRecordingState();
-      }, 3000); // 3 seconds delay
+      }, 3000);
     })
     .catch((err) => {
-      // Hide spinner
       spinner.style.display = 'none';
-
-      // Show error message
       statusText.textContent = 'Error uploading video. Please try again.';
       console.error("Upload error:", err);
-      
-      // Re-enable upload and re-record buttons
       uploadButton.disabled = false;
       reRecordButton.disabled = false;
     });
@@ -412,12 +374,10 @@ uploadButton.addEventListener('click', () => {
 // 9. UPLOAD THE VIDEO
 async function uploadVideo(videoBlob, cardNum, username) {
   const formData = new FormData();
-  // Change the file name to .mp4
   formData.append('videoFile', videoBlob, `recording.mp4`);
-  // Also update the trackName to have an mp4 extension
   formData.append('trackName', `${cardNum}.mp4`);
   formData.append('username', username);
-  formData.append('consentGiven', 'true'); // Include consent status
+  formData.append('consentGiven', 'true');
 
   const response = await fetch('/api/upload', {
     method: 'POST',
@@ -430,11 +390,9 @@ async function uploadVideo(videoBlob, cardNum, username) {
   }
 
   const data = await response.json();
-
   if (!data.success) {
     throw new Error(data.error || 'Unknown error during upload.');
   }
-
   return data;
 }
 
