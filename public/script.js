@@ -145,7 +145,7 @@ function resetRecordingState() {
 
 // 1. DRAW A CARD (randomly pick a number)
 drawButton.addEventListener('click', async () => {
-  // Suppose you have 3 tracks: track1.mp3, track2.mp3, track3.mp3
+  // Suppose you have 100 cards
   const totalCards = 100; 
   cardNumber = Math.floor(Math.random() * totalCards) + 1;
 
@@ -165,11 +165,11 @@ drawButton.addEventListener('click', async () => {
     // Show the local camera feed in the <video> element only when recording
     localVideo.srcObject = stream;       // Attach the stream to the video element
 
-    // Validate MIME type support
-    let options = { mimeType: 'video/webm; codecs=vp8' };
+    // Validate MIME type support: Try to record in MP4 first
+    let options = { mimeType: 'video/mp4' };
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-      console.warn(`${options.mimeType} is not supported, using default codec.`);
-      options = { mimeType: 'video/webm' }; // Let the browser choose the best available codec
+      console.warn(`${options.mimeType} is not supported, falling back to video/webm; codecs=vp8.`);
+      options = { mimeType: 'video/webm; codecs=vp8' };
     }
 
     // Initialize MediaRecorder with validated options
@@ -299,8 +299,10 @@ stopButton.addEventListener('click', () => {
 
 // 6. Handle Recording Stop
 function handleRecordingStop() {
-  // Assign the recorded blob to the global variable
-  recordedBlob = new Blob(chunks, { type: 'video/webm' });
+  // Create the recorded blob.
+  // Note: Even if we attempted to record as 'video/mp4', the resulting blob’s type will
+  // reflect what MediaRecorder actually recorded.
+  recordedBlob = new Blob(chunks, { type: mediaRecorder.mimeType });
   console.log("Recorded Blob Assigned to Global Variable:", recordedBlob);
 
   // Show post-recording controls
@@ -348,9 +350,6 @@ reRecordButton.addEventListener('click', () => {
   // Enable the record button and disable the stop button
   recordButton.disabled = false;
   stopButton.disabled = true;
-
-  // Optionally, prompt the user to start recording again
-  // This can be automatic or require the user to click "Start Recording" again
 });
 
 // 8. UPLOAD FUNCTIONALITY
@@ -382,7 +381,7 @@ uploadButton.addEventListener('click', () => {
   uploadButton.disabled = true;
   reRecordButton.disabled = true;
 
-  // 6. UPLOAD THE VIDEO FILE
+  // 9. UPLOAD THE VIDEO FILE
   uploadVideo(recordedBlob, cardNumber, username)
     .then(() => {
       // Hide spinner
@@ -413,9 +412,10 @@ uploadButton.addEventListener('click', () => {
 // 9. UPLOAD THE VIDEO
 async function uploadVideo(videoBlob, cardNum, username) {
   const formData = new FormData();
-  formData.append('videoFile', videoBlob, `recording.webm`);
-  formData.append('cardNumber', cardNum);
-  formData.append('trackName', `${cardNum}.mp3`);
+  // Change the file name to .mp4
+  formData.append('videoFile', videoBlob, `recording.mp4`);
+  // Also update the trackName to have an mp4 extension
+  formData.append('trackName', `${cardNum}.mp4`);
   formData.append('username', username);
   formData.append('consentGiven', 'true'); // Include consent status
 

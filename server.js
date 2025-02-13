@@ -46,9 +46,9 @@ function generateFilename(trackIndex, username) {
   const now = new Date();
   const formattedDate = now.toISOString().replace(/:/g, '-').split('.')[0]; // Format YYYY-MM-DDTHH-MM-SS
   const safeUsername = sanitizeFilename(username);
-
-  return `${trackIndex}_${safeUsername}_${formattedDate}.mp3`;
+  return `${trackIndex}_${safeUsername}_${formattedDate}.mp4`;
 }
+
 
 // Upload route
 app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
@@ -83,9 +83,10 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
       parents: [MAIN_FOLDER_ID], // Upload all files to a single folder
     };
     const media = {
-      mimeType: 'audio/mp3',
+      mimeType: 'video/mp4',
       body: fs.createReadStream(req.file.path),
     };
+    
 
     // Upload file to Google Drive
     const driveResponse = await driveService.files.create({
