@@ -202,7 +202,7 @@ function resetRecordingState() {
 
 drawButton.addEventListener('click', async () => {
   // Suppose you have 100 cards
-  const totalCards = 100; 
+  const totalCards = 577; 
   cardNumber = Math.floor(Math.random() * totalCards) + 1;
 
   cardDisplay.textContent = "You get song #" + cardNumber;
