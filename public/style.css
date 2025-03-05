@@ -1,0 +1,362 @@
+.video-and-controls {
+    display: flex;
+    gap: 20px;
+    align-items:center;
+    justify-content: center;
+    margin: 20px auto;
+  }
+
+  .controls-container {
+    display: flex;
+    flex-direction: column;
+    width: 400px;  /* Adjust width as needed */
+  }
+  
+  /* Button grid layout: 2 columns for 3 buttons */
+  .button-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    
+  }
+  
+  /* Center the last button (Upload Video) across both columns */
+  .button-grid button:last-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+  
+  /* Common button styles */
+  .button-grid button {
+    background-color: #4a90e2;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .button-grid button i {
+    margin-right: 8px;
+  }
+  
+  .button-grid button:hover {
+    background-color: #357ABD;
+    transform: translateY(-2px);
+  }
+  
+  /* Highlighted Upload Video button */
+  .highlight-upload {
+    background-color: #e74c3c;  /* Vibrant red/orange */
+    color: #fff;
+  }
+  
+  .highlight-upload:hover {
+    background-color: #c0392b;
+  }
+  
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    width: 100%;
+    max-width: 640px;
+    margin: 20px auto;
+  }
+  
+  .video-grid video {
+    width: 100%;
+    height: auto;
+    border-radius: 15px;
+  }
+  
+body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+h1 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.5rem;
+    color: #4a90e2;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+p {
+    font-size: 1rem;
+    max-width: 600px;
+    text-align: center;
+    margin-bottom: 30px;
+    line-height: 1.6;
+    color: #555;
+}
+
+/* Username Display */
+#username-display {
+    background-color: #fff;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 25px;
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#username-display.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Button Styles */
+button {
+    background-color: #4a90e2;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button i {
+    margin-right: 8px;
+}
+
+button:hover {
+    background-color: #357ABD;
+    transform: translateY(-2px);
+}
+
+button:active {
+    background-color: #2a6496;
+    transform: translateY(0);
+}
+
+button:disabled {
+    background-color: #a0c4e8;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Media Containers */
+.media-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* Video and Audio Player */
+#local-video {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-top: 15px;
+    max-width: 100%;
+    width: 480px;
+    height: 360px;
+    background-color: #000;
+    display: block; /* Hidden initially */
+}
+
+#audio-player {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-top: 15px;
+    max-width: 100%;
+    width: 320px;
+    height: 30px; /* Adjusted height for audio controls */
+    background-color: #fff;
+    display: block; /* Hidden initially */
+}
+
+/* Card Display */
+#card-display {
+    background-color: #fff;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin-bottom: 25px;
+    width: 100%;
+    max-width: 500px;
+    height: 50px;
+    text-align: center;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#card-display.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Status Message */
+#status-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-size: 1rem;
+    font-weight: 500;
+    margin-top: 25px;
+    width: 100%;
+    max-width: 500px;
+    color: #333;
+    opacity: 0;
+    /* transform: translateY(-10px); */
+    visibility: hidden;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#status-message.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Spinner Styles */
+.spinner {
+    width: 40px; /* Increased size */
+    height: 40px; /* Increased size */
+    border: 5px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #4a90e2;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 15px;
+    display: none; /* Initially hidden */
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    h1 {
+    font-size: 2rem;
+    }
+
+    button {
+    width: 100%;
+    max-width: 300px;
+    }
+
+    #local-video, #audio-player {
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    }
+
+    #post-record-controls {
+    flex-direction: column;
+    }
+
+    #post-record-controls button {
+    width: 100%;
+    max-width: 300px;
+    }
+
+
+
+    .spinner {
+    margin-left: 0;
+    margin-top: 10px;
+    }
+}
+
+/* Media Release Modal Styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto; /* 10% from the top and centered */
+    padding: 30px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px; /* Could be more or less, depending on screen size */
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(-20px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.modal-buttons button {
+    margin-left: 10px;
+}
+
+/* Responsive Modal */
+@media (max-width: 600px) {
+    .modal-content {
+    width: 90%;
+    padding: 20px;
+    }
+}

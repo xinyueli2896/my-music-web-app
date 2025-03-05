@@ -51,8 +51,6 @@ const recordButton = document.getElementById('record-button');
 const stopButton = document.getElementById('stop-button');
 const audioPlayer = document.getElementById('audio-player');
 const localVideo = document.getElementById('local-video'); // Reference to the <video> element
-const postRecordControls = document.getElementById('post-record-controls');
-const reRecordButton = document.getElementById('re-record-button');
 const uploadButton = document.getElementById('upload-button');
 const statusMessage = document.getElementById('status-message');
 const statusText = document.getElementById('status-text');
@@ -73,6 +71,7 @@ function openMediaReleaseModal() {
 function closeMediaReleaseModal() {
   mediaReleaseModal.style.display = 'none';
 }
+
 
 // Function to handle user agreeing to the media release
 function handleAgree() {
@@ -138,7 +137,8 @@ function startRecordingProcess() {
   recordButton.disabled = false;
   // Persist consent
   localStorage.setItem('consentGiven', 'true');
-  alert("You have agreed to the media release. You can now start recording.");
+  cardDisplay.classList.add('show');
+
 }
 
 // Function to reset the recording state
@@ -156,15 +156,14 @@ function resetRecordingState() {
   }
 
   // Reset UI elements
-  recordButton.disabled = true;
+  recordButton.disabled = false;
   stopButton.disabled = true;
-  postRecordControls.style.display = 'none';
-  postRecordControls.classList.remove('show');
-  statusMessage.style.display = 'none';
+  statusMessage.style.display = 'hidden';
   statusMessage.classList.remove('show');
 
+
   // Hide the video preview and stop its stream
-  localVideo.style.display = 'none';
+  localVideo.style.display = 'block';
   if (localVideo.srcObject) {
     localVideo.srcObject.getTracks().forEach(track => track.stop());
     localVideo.srcObject = null;
@@ -172,37 +171,82 @@ function resetRecordingState() {
 }
 
 // 1. DRAW A CARD (randomly pick a number)
+// drawButton.addEventListener('click', async () => {
+//   // Suppose you have 100 cards
+//   const totalCards = 100; 
+//   cardNumber = Math.floor(Math.random() * totalCards) + 1;
+
+//   cardDisplay.textContent = "You get song #" + cardNumber;
+//   cardDisplay.classList.add('show');
+
+//   // 2. PLAY MUSIC CORRESPONDING TO THAT NUMBER
+//   audioPlayer.src = `/audio/${cardNumber}.mp3`;
+//   audioPlayer.style.display = 'block'; // Show audio controls
+
+//   // 3. Initialize MediaRecorder and request camera/microphone access
+//   await initializeMediaRecorder();
+
+//   // Check if consent is already given
+//   const consentGiven = localStorage.getItem('consentGiven');
+//   if (consentGiven === 'true') {
+//     startRecordingProcess();
+//   } else {
+//     // Show the Media Release Modal to seek user consent
+//     openMediaReleaseModal();
+//   }
+
+//   // Hide post-record controls and status message from previous recordings
+//   statusMessage.style.display = 'hidden';
+//   statusMessage.classList.remove('show');
+// });
+
 drawButton.addEventListener('click', async () => {
   // Suppose you have 100 cards
   const totalCards = 100; 
   cardNumber = Math.floor(Math.random() * totalCards) + 1;
 
-  cardDisplay.textContent = "You drew card #" + cardNumber;
+  cardDisplay.textContent = "You get song #" + cardNumber;
   cardDisplay.classList.add('show');
 
-  // 2. PLAY MUSIC CORRESPONDING TO THAT NUMBER
+  // Set the audio source and show audio controls
   audioPlayer.src = `/audio/${cardNumber}.mp3`;
-  audioPlayer.style.display = 'block'; // Show audio controls
+  audioPlayer.style.display = 'block';
+
+  // Disable recording buttons until the song finishes
+  recordButton.disabled = true;
+  stopButton.disabled = true;
+  uploadButton.disabled = true;
+
+  // Show an informational status message
+  statusMessage.style.display = 'flex';
+  statusMessage.classList.add('show');
+  statusText.textContent = 'Listen to the song before start recording...';
+  spinner.style.display = 'none';
+
+  // Play the song
   audioPlayer.play();
 
-  // 3. Initialize MediaRecorder and request camera/microphone access
+  // Initialize MediaRecorder and request camera/microphone access
   await initializeMediaRecorder();
 
-  // Check if consent is already given
-  const consentGiven = localStorage.getItem('consentGiven');
-  if (consentGiven === 'true') {
-    startRecordingProcess();
-  } else {
-    // Show the Media Release Modal to seek user consent
-    openMediaReleaseModal();
-  }
+  // Add an event listener for when the song ends
+  const onSongEnd = () => {
+    // Enable the record button after the song has finished
+    recordButton.disabled = false;
+    // Optionally, clear the info message:
+    statusMessage.classList.remove('show');
+    statusMessage.style.display = 'none';
 
-  // Hide post-record controls and status message from previous recordings
-  postRecordControls.style.display = 'none';
-  postRecordControls.classList.remove('show');
-  statusMessage.style.display = 'none';
-  statusMessage.classList.remove('show');
+    // Remove this event listener so it doesn't fire for subsequent plays
+    audioPlayer.removeEventListener('ended', onSongEnd);
+  };
+
+  audioPlayer.addEventListener('ended', onSongEnd);
+
+  // Hide any previous status messages (if necessary)
+  // (Or leave them until the song finishes, as above)
 });
+
 
 // 4. START RECORDING
 recordButton.addEventListener('click', () => {
@@ -225,14 +269,13 @@ recordButton.addEventListener('click', () => {
     // Disable record button and enable stop button
     recordButton.disabled = true;
     stopButton.disabled = false;
+    uploadButton.disabled = true;
 
     // Show video preview
     localVideo.style.display = 'block';
 
     // Hide post-record controls and status message
-    postRecordControls.style.display = 'none';
-    postRecordControls.classList.remove('show');
-    statusMessage.style.display = 'none';
+    statusMessage.style.display = 'hidden';
     statusMessage.classList.remove('show');
 
     // Define and attach the 'ended' event listener on the audio player
@@ -263,6 +306,8 @@ stopButton.addEventListener('click', () => {
 
   // Disable stop button
   stopButton.disabled = true;
+  recordButton.disabled = false;
+  uploadButton.disabled = false;
 
   // Stop music playback and reset audio player
   audioPlayer.pause();
@@ -276,11 +321,12 @@ stopButton.addEventListener('click', () => {
   }
 
   // Hide video preview and stop its stream
-  localVideo.style.display = 'none';
+  localVideo.style.display = 'block';
   if (localVideo.srcObject) {
     localVideo.srcObject.getTracks().forEach(track => track.stop());
     localVideo.srcObject = null;
   }
+  initializeMediaRecorder();
 });
 
 // 6. Handle Recording Stop
@@ -290,11 +336,9 @@ function handleRecordingStop() {
   console.log("Recorded Blob Assigned to Global Variable:", recordedBlob);
 
   // Show post-recording controls and update status message
-  postRecordControls.style.display = 'flex';
-  postRecordControls.classList.add('show');
   statusMessage.style.display = 'flex';
   statusMessage.classList.add('show');
-  statusText.textContent = 'Would you like to re-record or upload your video?';
+  statusText.textContent = 'Would you like to upload your video?';
   spinner.style.display = 'none';
 
   // Optional: auto-upload after 30 seconds
@@ -306,28 +350,6 @@ function handleRecordingStop() {
   }, 30000);
 }
 
-// 7. RE-RECORD FUNCTIONALITY
-reRecordButton.addEventListener('click', async () => {
-  // Clear any existing upload timeout
-  if (uploadTimeout) {
-    clearTimeout(uploadTimeout);
-    uploadTimeout = null;
-  }
-
-  // Reset the recorded blob and UI elements
-  recordedBlob = null;
-  postRecordControls.style.display = 'none';
-  postRecordControls.classList.remove('show');
-  statusMessage.style.display = 'none';
-  statusMessage.classList.remove('show');
-  audioPlayer.pause();
-  audioPlayer.currentTime = 0;
-  recordButton.disabled = false;
-  stopButton.disabled = true;
-
-  // Reinitialize the MediaRecorder and camera stream for a new recording
-  await initializeMediaRecorder();
-});
 
 // 8. UPLOAD FUNCTIONALITY
 uploadButton.addEventListener('click', () => {
@@ -351,16 +373,14 @@ uploadButton.addEventListener('click', () => {
   spinner.style.display = 'block';
 
   uploadButton.disabled = true;
-  reRecordButton.disabled = true;
 
   // 9. UPLOAD THE VIDEO FILE
   uploadVideo(recordedBlob, cardNumber, username)
     .then(() => {
       spinner.style.display = 'none';
       statusText.textContent = 'Video uploaded successfully to Google Drive!';
-      setTimeout(() => {
-        resetRecordingState();
-      }, 3000);
+      // resetRecordingState();
+
     })
     .catch((err) => {
       spinner.style.display = 'none';

@@ -34,7 +34,7 @@ const auth = new google.auth.GoogleAuth({
 });
 
 // Google Drive folder where all files will be stored
-const MAIN_FOLDER_ID = '1kaua6xYUe-Rl7Z0uFBhcsG_GpKb18Db-'; // Update this with your Drive folder ID
+const MAIN_FOLDER_ID = '1nUlBJi8dfh7FkCoqHz97VhIJbt5A5F4z'; // Update this with your Drive folder ID
 
 // Function to sanitize filenames
 function sanitizeFilename(filename) {
