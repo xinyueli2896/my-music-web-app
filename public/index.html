@@ -9,6 +9,14 @@
   <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-p6VJb0ovr0zEOIqoV8I9z1ZlkrGc4HeWH4JqYblSb9nBpXlBFAkFsGqK+6jhkU31OcdN68e9KZndkZgDew4bMQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Ensure audio element shows native controls on mobile */
+    audio {
+      display: block;
+      width: 100%;
+      min-height: 40px;
+    }
+  </style>
 </head>
 <body>
   <h1>Listen, Think, and Move</h1>
@@ -54,8 +62,8 @@
   
   <!-- Media Containers -->
   <div class="media-container">
-    <!-- Audio player (hidden initially) -->
-    <audio id="audio-player" controls playsinline></audio>
+    <!-- Audio player (with controls, playsinline, and preload for progress bar) -->
+    <audio id="audio-player" controls playsinline preload="metadata"></audio>
   </div>
 
   <div class="video-and-controls">

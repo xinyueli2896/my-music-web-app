@@ -98,8 +98,18 @@ async function initializeMediaRecorder() {
       audio: true
     };
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+    // Detect mobile device
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+    // Set up local video preview
     localVideo.srcObject = stream;
     localVideo.playsInline = true;
+
+    // Mirror preview on mobile
+    if (isMobile) {
+      localVideo.style.transform = 'scaleX(-1)';
+    }
 
     let options = { mimeType: 'video/mp4' };
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
@@ -107,7 +117,38 @@ async function initializeMediaRecorder() {
       options = { mimeType: 'video/webm; codecs=vp8' };
     }
 
-    mediaRecorder = new MediaRecorder(stream, options);
+    // For mobile devices, record a mirrored stream via a canvas
+    if (isMobile) {
+      const videoTrack = stream.getVideoTracks()[0];
+      const settings = videoTrack.getSettings();
+      const width = settings.width || 640;
+      const height = settings.height || 480;
+
+      // Create an offscreen canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      // Draw mirrored frames on the canvas
+      function drawFrame() {
+        ctx.save();
+        ctx.scale(-1, 1);
+        ctx.drawImage(localVideo, -width, 0, width, height);
+        ctx.restore();
+        requestAnimationFrame(drawFrame);
+      }
+      drawFrame();
+
+      // Capture the canvas stream (e.g., at 30 fps)
+      const mirroredStream = canvas.captureStream(30);
+      // Append audio tracks to the mirrored stream
+      stream.getAudioTracks().forEach(track => mirroredStream.addTrack(track));
+
+      mediaRecorder = new MediaRecorder(mirroredStream, options);
+    } else {
+      mediaRecorder = new MediaRecorder(stream, options);
+    }
     chunks = [];
 
     mediaRecorder.ondataavailable = (event) => {
