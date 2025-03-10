@@ -7,7 +7,6 @@ const path = require('path');
 // Load environment variables
 require('dotenv').config();
 
-// Initialize Express
 const app = express();
 
 // Serve static files
@@ -22,42 +21,34 @@ const upload = multer({
 
 // Google Drive Authentication
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
-
-// Decode service account credentials
 const decodedCredentials = Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, 'base64').toString('utf-8');
 const credentials = JSON.parse(decodedCredentials);
 
-// Create an auth object
 const auth = new google.auth.GoogleAuth({
   credentials: credentials,
   scopes: SCOPES,
 });
 
-// Google Drive folder where all files will be stored
-const MAIN_FOLDER_ID = '1nUlBJi8dfh7FkCoqHz97VhIJbt5A5F4z'; // Update this with your Drive folder ID
+// Google Drive folder ID (update with your Drive folder ID)
+const MAIN_FOLDER_ID = '1nUlBJi8dfh7FkCoqHz97VhIJbt5A5F4z';
 
-// Function to sanitize filenames
 function sanitizeFilename(filename) {
   return filename.replace(/[^a-z0-9_\-\.]/gi, '_');
 }
 
-// Function to generate a formatted filename
 function generateFilename(trackIndex, username) {
   const now = new Date();
-  const formattedDate = now.toISOString().replace(/:/g, '-').split('.')[0]; // Format YYYY-MM-DDTHH-MM-SS
+  const formattedDate = now.toISOString().replace(/:/g, '-').split('.')[0];
   const safeUsername = sanitizeFilename(username);
   return `${trackIndex}_${safeUsername}_${formattedDate}.mp4`;
 }
 
-
-// Upload route
 app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
   if (!req.file) {
     console.error('Upload Error: No file uploaded.');
     return res.status(400).json({ success: false, error: 'No file uploaded.' });
   }
 
-  // Validate user consent
   const consentGiven = req.body.consentGiven;
   if (consentGiven !== 'true') {
     fs.unlink(req.file.path, (err) => {
@@ -68,27 +59,21 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
 
   try {
     const driveService = google.drive({ version: 'v3', auth: await auth.getClient() });
-
-    // Get track index and username from request body
     const trackIndex = req.body.trackName || 'UnknownTrack';
     const username = req.body.username || 'UnknownUser';
-
-    // Generate filename
     const filename = generateFilename(trackIndex, username);
 
     console.log(`Uploading file: ${filename} to Google Drive folder ID: ${MAIN_FOLDER_ID}`);
 
     const fileMetadata = {
       name: filename,
-      parents: [MAIN_FOLDER_ID], // Upload all files to a single folder
+      parents: [MAIN_FOLDER_ID],
     };
     const media = {
       mimeType: 'video/mp4',
       body: fs.createReadStream(req.file.path),
     };
-    
 
-    // Upload file to Google Drive
     const driveResponse = await driveService.files.create({
       requestBody: fileMetadata,
       media: media,
@@ -97,7 +82,6 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
 
     console.log('Uploaded file ID:', driveResponse.data.id);
 
-    // Delete temporary file after upload
     fs.unlink(req.file.path, (err) => {
       if (err) console.error('Error deleting temp file:', err);
     });
@@ -115,7 +99,6 @@ app.post('/api/upload', upload.single('videoFile'), async (req, res) => {
   }
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);

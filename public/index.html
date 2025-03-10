@@ -3,57 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <title>Music & Video Recorder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <!-- Google Fonts for improved typography -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Poppins:wght@600&display=swap" rel="stylesheet">
   <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-p6VJb0ovr0zEOIqoV8I9z1ZlkrGc4HeWH4JqYblSb9nBpXlBFAkFsGqK+6jhkU31OcdN68e9KZndkZgDew4bMQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="style.css">
-
 </head>
 <body>
   <h1>Listen, Think, and Move</h1>
   
-  <!-- <p>
-    You are now volunteering to participate in the collection of a <b>multimodal dataset
-    which matches music with facial expressions and hand gestures.</b> 
-  </p> -->
   <p>  
     We want you to listen to given songs, think of relevant facial expressions and hand gestures, record yourself, and <b>upload</b>.
-    While listening to the music, you have to make face expressions according to the mood and rhythm of the music. You can also:
+    While listening to the music, you have to make facial expressions according to the mood and rhythm. You can also:
     <ul>
       <li>pretend you are conducting an orchestra with your face,</li>
-      <li>pretend you are playing the piano/drum/any other instruments in the music,</li>
+      <li>pretend you are playing an instrument,</li>
     </ul> 
   </p>
   
-
   <!-- Username Display -->
   <div id="username-display">
     Username: <span id="username"></span>
   </div>
 
   <div class="video-grid">
-    <video controls>
+    <video controls playsinline>
       <source src="/videos/sample 4.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
-    <video controls>
+    <video controls playsinline>
       <source src="/videos/sample 5.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
-    <video controls>
+    <video controls playsinline>
       <source src="/videos/sample 1.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
-    <video controls>
+    <video controls playsinline>
       <source src="/videos/sample 3.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
   </div>
-  
 
   <!-- Button to draw a card/number -->
-  <button id="draw-button"><i class="fas fa-dice"></i>Next Song</button>
+  <button id="draw-button"><i class="fas fa-dice"></i> Next Song</button>
   
   <!-- Card Display -->
   <div id="card-display"></div>
@@ -61,13 +55,13 @@
   <!-- Media Containers -->
   <div class="media-container">
     <!-- Audio player (hidden initially) -->
-    <audio id="audio-player" controls></audio>
+    <audio id="audio-player" controls playsinline></audio>
   </div>
 
   <div class="video-and-controls">
     <!-- Video Container -->
     <div class="media-container">
-      <video id="local-video" autoplay muted></video>
+      <video id="local-video" autoplay muted playsinline></video>
     </div>
     
     <!-- Controls Container -->
@@ -92,14 +86,13 @@
     </div>
   </div>
   
-
   <!-- Media Release Modal -->
   <div id="media-release-modal" class="modal">
     <div class="modal-content">
       <span class="close-button" id="close-modal">&times;</span>
       <h2>Media Release Agreement</h2>
       <p>
-        By agreeing to this media release, you consent to the collection and use of your video recordings, which include facial data, for the purpose of model training. Your data will be handled with the utmost confidentiality and will not be used for commercial purposes. You have the right to withdraw your consent at any time.
+        By agreeing to this media release, you consent to the collection and use of your video recordings, including facial data, for model training. Your data will be handled confidentially and not used for commercial purposes. You may withdraw your consent at any time.
       </p>
       <div class="modal-buttons">
         <button id="agree-button"><i class="fas fa-check-circle"></i> Agree</button>
