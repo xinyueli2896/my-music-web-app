@@ -92,9 +92,9 @@ window.addEventListener('click', (event) => {
 // Initialize MediaRecorder and attach stream to local video
 async function initializeMediaRecorder() {
   try {
-    // Use constraints suitable for mobile devices
+    // Use 4:3 resolution constraints (640x480)
     const constraints = {
-      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
       audio: true
     };
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -106,7 +106,7 @@ async function initializeMediaRecorder() {
     localVideo.srcObject = stream;
     localVideo.playsInline = true;
 
-    // Mirror preview on mobile
+    // Mirror preview on mobile using CSS
     if (isMobile) {
       localVideo.style.transform = 'scaleX(-1)';
     }
@@ -117,14 +117,14 @@ async function initializeMediaRecorder() {
       options = { mimeType: 'video/webm; codecs=vp8' };
     }
 
-    // For mobile devices, record a mirrored stream via a canvas
+    // For mobile devices, record a mirrored stream via a canvas to maintain 4:3 ratio
     if (isMobile) {
       const videoTrack = stream.getVideoTracks()[0];
       const settings = videoTrack.getSettings();
       const width = settings.width || 640;
       const height = settings.height || 480;
 
-      // Create an offscreen canvas
+      // Create an offscreen canvas with 4:3 ratio
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -142,7 +142,7 @@ async function initializeMediaRecorder() {
 
       // Capture the canvas stream (e.g., at 30 fps)
       const mirroredStream = canvas.captureStream(30);
-      // Append audio tracks to the mirrored stream
+      // Append audio tracks from the original stream
       stream.getAudioTracks().forEach(track => mirroredStream.addTrack(track));
 
       mediaRecorder = new MediaRecorder(mirroredStream, options);
