@@ -92,14 +92,14 @@ window.addEventListener('click', (event) => {
 // Initialize MediaRecorder and attach stream to local video
 async function initializeMediaRecorder() {
   try {
-    // Use 4:3 resolution constraints (640x480)
+    // Set constraints with ideal resolution 640x480
     const constraints = {
-      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
       audio: true
     };
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-    // Detect mobile device
+    // Detect mobile devices
     const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
     // Set up local video preview
@@ -117,14 +117,10 @@ async function initializeMediaRecorder() {
       options = { mimeType: 'video/webm; codecs=vp8' };
     }
 
-    // For mobile devices, record a mirrored stream via a canvas to maintain 4:3 ratio
+    // For mobile, record a mirrored stream using an offscreen canvas set to 640x480
     if (isMobile) {
-      const videoTrack = stream.getVideoTracks()[0];
-      const settings = videoTrack.getSettings();
-      const width = settings.width || 640;
-      const height = settings.height || 480;
-
-      // Create an offscreen canvas with 4:3 ratio
+      const width = 640;
+      const height = 480;
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -140,13 +136,12 @@ async function initializeMediaRecorder() {
       }
       drawFrame();
 
-      // Capture the canvas stream (e.g., at 30 fps)
+      // Capture the canvas stream at 30 fps and add audio tracks
       const mirroredStream = canvas.captureStream(30);
-      // Append audio tracks from the original stream
       stream.getAudioTracks().forEach(track => mirroredStream.addTrack(track));
-
       mediaRecorder = new MediaRecorder(mirroredStream, options);
     } else {
+      // For desktop, use the original stream which already has 640x480 constraints
       mediaRecorder = new MediaRecorder(stream, options);
     }
     chunks = [];

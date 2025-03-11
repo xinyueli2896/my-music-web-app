@@ -10,21 +10,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-p6VJb0ovr0zEOIqoV8I9z1ZlkrGc4HeWH4JqYblSb9nBpXlBFAkFsGqK+6jhkU31OcdN68e9KZndkZgDew4bMQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Force a 4:3 aspect ratio for video preview/recording */
-    .video-container {
-      position: relative;
-      width: 100%;
-      max-width: 640px;
-      aspect-ratio: 4 / 3;
-      background: black;
-      margin: 0 auto;
-    }
-    .video-container video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    /* Ensure the audio element shows native controls */
+    /* Ensure audio element displays native controls on mobile */
     audio {
       display: block;
       width: 100%;
@@ -76,13 +62,13 @@
   
   <!-- Media Containers -->
   <div class="media-container">
-    <!-- Audio player (with controls, playsinline, and preload for progress bar) -->
+    <!-- Audio player with controls, playsinline, and preload -->
     <audio id="audio-player" controls playsinline preload="metadata"></audio>
   </div>
 
   <div class="video-and-controls">
-    <!-- Video Container wrapped in a div to enforce 4:3 ratio -->
-    <div class="video-container">
+    <!-- Video Container -->
+    <div class="media-container">
       <video id="local-video" autoplay muted playsinline></video>
     </div>
     
